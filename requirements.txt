@@ -1,0 +1,10 @@
+# PyTorch는 CUDA 빌드에 맞춰 따로 설치 (README 참고). 실험은 torch 2.6.0 + cu118, torchvision 0.21.0
+# OpenAI CLIP: pip install --no-deps https://github.com/openai/CLIP/archive/refs/heads/main.zip
+# DINOv2는 torch.hub(facebookresearch/dinov2)로 받음
+numpy<2.3
+pandas<2.3
+matplotlib<3.11
+ftfy
+regex
+tqdm
+packaging
