@@ -62,7 +62,7 @@ Ours (더한 부분)
 ## 실험 설정
 
 - **모델:** OpenAI CLIP ViT-B/16(프롬프트 `a photo of a {class}.`), DINOv2 ViT-B/14
-- **데이터:** source는 CIFAR-10 train에서 클래스당 16장(라벨 subset 3개, seed 0·1·2). target은 CIFAR-10-C severity 5, 15종 × 10,000장. 32×32를 224×224로 PIL bicubic 리사이즈(CLIP 공식 전처리)
+- **데이터:** source는 CIFAR-10 train에서 클래스당 16장(라벨 subset 3개, seed 0·1·2). target은 CIFAR-10-C severity 5, 15종 × 10,000장. 32×32를 224×224로 PIL bicubic 리사이즈(CLIP 공식 전처리). CIFAR-100(-C)도 같은 방식이고(클래스당 16장 = 1,600장), 하이퍼파라미터는 CIFAR-10 값을 그대로 씁니다.
 - **CLIP 미세조정:** 이미지 LayerNorm + 분류기, AdamW lr 1e-4, batch 128, 782 iteration(16장) / 10 epoch(5만 장)
 - **TTA:** online batch 200, AdamW lr 1e-3, 손상마다 초기화. 모든 방법이 같은 프로토콜과 같은 test 순서
 - **선택 규칙:** λ, head 구성, DINO 적응 방식은 탐색용 손상 4종(Gaussian, Defocus, Snow, Contrast)으로만 골랐습니다. DINO 적응의 이득은 탐색에 안 쓴 11종에서 +4.32%p로, 탐색용 4종(+4.26%p)과 같습니다.
@@ -224,6 +224,7 @@ core/
 analyze.py         CIFAR-10 표와 라벨 수 곡선(fig7)
 sum_c100.py        CIFAR-100 표와 fig8
 sum_ext.py         추가 실험(severity 3, continual) 표
+sum_readme.py      이 README의 Table 1·2·4 (DATASET=cifar100이면 CIFAR-100)
 fig_model.py       모델 구조도(fig6, 실제 예측 포함)
 make_figs.py       analyze.py + fig_model.py
 make_data_figures.py  데이터 그림(fig1~fig5)
