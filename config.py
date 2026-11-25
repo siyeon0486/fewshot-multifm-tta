@@ -396,6 +396,10 @@ KSHOT_STAGES['Z_ours'] = [_ours(16, s, iters=FT_ITERS) for s in (0, 1, 2)]
 KSHOT_STAGES['Z_head'] = [dict(_ours(16, s, iters=FT_ITERS), proto_src=CHOSEN_HEAD.replace('+dlnh', '')) for s in (0, 1, 2)]
 KSHOT_STAGES['Z_head_a'] = KSHOT_STAGES['Z_head'][:2]     # GPU 2장에 나눠 돌리기 (subset 0·1 / 2)
 KSHOT_STAGES['Z_head_b'] = KSHOT_STAGES['Z_head'][2:]
+#   README Main 표의 "5만 장 학습" 묶음 (2026-11-25 사용자 "zero-shot + 5만 장 둘 다", DATASET=cifar100):
+#      CIFAR-100 ① 5만 장 모델(X_basefull 체크포인트) × CDIM 말고 6개 방법. CIFAR-10은 K_full_ep10·M_full에 이미 있음.
+KSHOT_STAGES['X_basefull_tta_a'] = [J(5000, s, iters=FULL_ITERS, methods=['source', 'tent', 'eta', 'tda']) for s in (0, 1, 2)]
+KSHOT_STAGES['X_basefull_tta_b'] = [J(5000, s, iters=FULL_ITERS, methods=['sar', 'batclip']) for s in (0, 1, 2)]
 KSHOT_STAGE_CORRS = {st: CFG['CORR_ALL'] for st in ('H_final', 'G_fewshot', 'G_tta', 'I_ext', 'G_fewshot_tuned',
                                                     'G_tta_tip', 'K_full_fill', 'K_full_ep5', 'K_full_ep10',
                                                     'K_full_rep_s1', 'K_full_rep_s2', 'L_p5', 'L_curve_ours',
@@ -413,7 +417,8 @@ KSHOT_STAGE_CORRS = {st: CFG['CORR_ALL'] for st in ('H_final', 'G_fewshot', 'G_t
                                                     'X_ours16', 'X_oursfull', 'X_ourstta_a', 'X_ourstta_b',
                                                     'T_tta_a', 'T_tta_b',
                                                     'Y_tip_a', 'Y_tip_b', 'Z_base', 'Z_ours', 'Z_head',
-                                                    'Z_head_a', 'Z_head_b')}   # 나머지는 KSHOT_CORRS(4종)
+                                                    'Z_head_a', 'Z_head_b',
+                                                    'X_basefull_tta_a', 'X_basefull_tta_b')}   # 나머지는 KSHOT_CORRS(4종)
 KSHOT_METHODS = ['source', 'batclip', 'cdim']
 KSHOT_CORRS = CFG['CORR_SWEEP']
 FULL_REF = dict(head_mode='text_init', budget='same_epochs', ratio=1.0)   # k-shot 회복률 기준
