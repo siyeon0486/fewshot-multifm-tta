@@ -26,7 +26,7 @@ English summary. With only 16 labeled images per class, we attach a training-fre
 
 - **분포 이동:** 5만 장으로 학습한 CLIP 모델은 깨끗한 CIFAR-10 test에서 97.43%지만, 손상 이미지(CIFAR-10-C 15종, severity 5)에서는 73.07%로 떨어집니다.
 - **Test-Time Adaptation (TTA):** 테스트 이미지가 들어오는 동안 라벨 없이 모델 일부를 고칩니다. online, 배치 200장, 배치마다 예측 후 1 step 업데이트, 손상 종류가 바뀌면 처음 상태로 돌아갑니다(episodic).
-- **다중 파운데이션 모델 TTA:** CDIM은 CLIP과 DINOv2를 함께 쓰는 TTA 방법입니다(연구실 원고 단계).
+- **다중 파운데이션 모델 TTA:** CDIM은 CLIP과 DINOv2를 함께 쓰는 TTA 방법입니다([Kim et al., arXiv 2026](https://arxiv.org/abs/2611.04489)).
 - **이 프로젝트의 질문:** source 라벨이 **클래스당 16장뿐일 때** 다중 파운데이션 모델 TTA는 어떻게 되는가, 그리고 그 적은 라벨을 어디에 써야 하는가.
 - **출발점이 된 관찰:** source 모델 22개를 보면 TTA 후 정확도는 source의 clean 정확도로 거의 정해집니다(R² = 0.88). 같은 16장으로 만든 DINOv2 클래스 프로토타입은 clean 96.05%로, 같은 16장으로 미세조정한 CLIP(94.52%)보다 높았습니다.
 
@@ -40,7 +40,7 @@ English summary. With only 16 labeled images per class, we attach a training-fre
 
 **식** (배치 B = 200, C: CLIP 이미지 특징, D: DINOv2 CLS 특징, W: CLIP 분류기, 모두 정규화)
 
-CDIM (기존 방법)
+CDIM (기존 방법, Kim et al., 2026. 식과 하이퍼파라미터는 논문과 같음)
 - 교차공분산 투영: $M = C^\top D / B$, $T_D = \mathrm{normalize}_{\text{col}}(M^\top W^\top)$
 - 앙상블 logit: $Z = \tfrac{1}{2}\left(\tau_c^{-1}\, C W^\top + \tau_d^{-1}\, D\, T_D\right)$, $\tau_c^{-1} = 100$, $\tau_d^{-1} = 20$
 - Gated Info-Max 손실: 에너지 $E = -\mathrm{logsumexp}(Z)$가 가장 높은 5%를 빼고, $L = \frac{1}{|G|}\sum_{i \in G} H(p_i) - H(\bar p)$
@@ -188,6 +188,22 @@ Ours (더한 부분)
 
 2×2 (② 기준): DINO 적응만 +0.56, head만 +9.23, 둘 다 +16.67, 상호작용 +6.88.
 
+> CIFAR-100-C의 TTA 학습률은 CIFAR-10과 같은 값(AdamW, 10⁻³)을 그대로 썼습니다. BATCLIP·CDIM 논문은 CIFAR-100-C에서 Adam, 5×10⁻⁴를 씁니다. 그래서 아래 구현 검증 표에서 CDIM·BATCLIP의 CIFAR-100-C 값이 논문과 3%p 정도 다릅니다. 모든 행이 같은 설정이라 표 안의 비교에는 영향이 없습니다.
+
+### 구현 검증: 논문 보고 값과 비교 (라벨 없음, zero-shot CLIP ViT-B/16, severity 5, batch 200, 손상마다 리셋, 15종 평균)
+
+| 방법 | CIFAR-10-C 우리 | CDIM 논문 | BATCLIP 논문 | CIFAR-100-C 우리 | CDIM 논문 | BATCLIP 논문 |
+|---|---|---|---|---|---|---|
+| zero-shot CLIP | 61.16 | 61.2 | 61.16 | 35.79 | 35.8 | 35.79 |
+| TENT | 61.84 | 61.9 | 62.03 | 38.07 | 37.0 | 37.96 |
+| SAR | 69.26 | – | 67.37 | 44.95 | – | 41.19 |
+| TDA | 62.22 | 62.4 | – | 36.91 | 36.7 | – |
+| BATCLIP | 72.77 | 73.8 | 73.85 | 38.99 | 42.2 | 42.09 |
+| CDIM | 79.81 | 79.8 | – | 51.80 | 48.2 | – |
+
+- CIFAR-10-C는 논문 값이 있는 방법 모두 ±2%p 안이고, CDIM은 손상 15종 각각도 거의 같습니다. ETA는 이 설정의 논문 값이 없습니다.
+- 논문 값: CDIM 논문 Table 15, BATCLIP 논문 Table 1.
+
 더 자세한 표는 [`results/`](results/)에 있습니다(`analyze.py`, `sum_c100.py`가 만든 표 그대로).
 
 ---
@@ -259,7 +275,8 @@ python analyze.py                            # 표·그림 (GPU 불필요)
 ## 주의
 
 - 모든 비교는 같은 구현·같은 프로토콜 안의 상대 비교입니다.
-- CDIM은 연구실 원고 단계의 방법입니다(manuscript in preparation). 이 저장소의 CDIM 수치는 모두 직접 돌린 값입니다. 우리 기여는 CDIM 위에 더한 Few-shot DINO head와 DINO 적응입니다.
+- CDIM은 Kim et al.(arXiv 2611.04489, 2026)의 방법입니다. 이 저장소의 CDIM 수치는 모두 직접 돌린 값이고, 논문 값과 맞는지는 아래 "구현 검증"에 있습니다. 우리 기여는 CDIM 위에 더한 Few-shot DINO head와 DINO 적응입니다.
+- TTA 중 업데이트하는 CLIP LayerNorm: zero-shot CLIP이면 BATCLIP·CDIM은 논문처럼 이미지·텍스트 인코더 모두, 미세조정한 CLIP(분류기 W가 텍스트 인코더를 쓰지 않음)이면 이미지 인코더만입니다.
 - ETA·SAR·TDA는 같은 프로토콜에 맞춘 재구현입니다. ETA는 Fisher 정규화가 없고, SAR은 AdamW를 쓰고, TDA는 positive cache만 씁니다. SAR은 이 설정에서 붕괴 감지로 거의 매 배치 초기화돼 사실상 TTA가 없는 값입니다.
 - 클래스당 1장은 라벨 subset에 따라 크게 흔들립니다(84.76 ±2.43).
 - ours는 TTA 시간이 CDIM의 약 2.3배, 메모리가 약 1.9배입니다.
@@ -268,6 +285,7 @@ python analyze.py                            # 표·그림 (GPU 불필요)
 
 - CLIP: Radford et al., ICML 2021 / DINOv2: Oquab et al., 2023
 - CIFAR-10-C: Hendrycks & Dietterich, ICLR 2019
-- TENT: Wang et al., ICLR 2021 / EATA·ETA: Niu et al., ICML 2022 / SAR: Niu et al., ICLR 2023 / TDA: Karmanov et al., CVPR 2024 / BATCLIP
+- TENT: Wang et al., ICLR 2021 / EATA·ETA: Niu et al., ICML 2022 / SAR: Niu et al., ICLR 2023 / TDA: Karmanov et al., CVPR 2024
 - Tip-Adapter: Zhang et al., ECCV 2022 / CaFo: Zhang et al., CVPR 2023 / Prototypical Networks: Snell et al., NeurIPS 2017
-- CDIM: manuscript in preparation
+- CDIM: T. Kim, W. Hwang, H. Cho, "Bridging CLIP with DINO: Cross-Modal Information Maximization for Online Test-Time Adaptation," arXiv:2611.04489, 2026
+- BATCLIP: S. K. Maharana et al., "BATCLIP: Bimodal Online Test-Time Adaptation for CLIP," ICCV 2025
